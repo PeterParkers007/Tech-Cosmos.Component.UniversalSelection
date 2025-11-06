@@ -1,0 +1,233 @@
+# UniversalSelection - Unity通用选择管理器
+
+[![Unity Version](https://img.shields.io/badge/Unity-2022.3%2B-blue.svg)](https://unity3d.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+一个高度解耦、类型安全的Unity选择管理框架，支持框选、多选、叠加选择，只需继承一个类即可为任何类型添加完整的选择功能。
+
+## **? 特性**
+- ? **通用性强** - 支持任何类型的单位选择（GameObject、Component、自定义类等）
+
+- ?? **功能完整** - 框选、多选、叠加选择（Shift键）、单选
+
+- ? **高度解耦** - 通过事件和委托实现完全可定制
+
+- ? **开箱即用** - 只需实现一个方法即可使用
+
+- ?? **类型安全** - 基于泛型设计，编译时类型检查
+
+- ? **轻量级** - 无依赖，纯C#实现
+
+
+## **? 安装**
+**使用Unity Package Manager**
+1. 打开 Unity Package Manager
+
+2. 点击 "+" 按钮
+
+3. 选择 "Add package from git URL"
+
+4. 输入：https://github.com/PeterParkers007/UniversalSelection.git
+
+或手动安装
+将整个 UniversalSelection 文件夹放入项目的 Packages 目录中。
+
+## ? 快速开始
+### 基础用法
+1.创建你的单位类:
+```csharp
+public class MyUnit : MonoBehaviour
+{
+    public string unitName;
+    
+    public void SetSelectedEffect(bool selected)
+    {
+        GetComponent<Renderer>().material.color = selected ? Color.red : Color.white;
+    }
+}
+```
+2.创建选择管理器:
+```csharp
+public class MyUnitSelectionManager : SelectionManager<MyUnit>
+{
+    public override MyUnit[] GetAllUnits()
+    {
+        return FindObjectsOfType<MyUnit>();
+    }
+    
+    protected override void Awake()
+    {
+        base.Awake();
+        OnSetUnitSelectedEffect += (unit, selected) => unit.SetSelectedEffect(selected);
+    }
+}
+```
+3.在场景中使用:
+```csharp
+public class GameController : MonoBehaviour
+{
+    private void Update()
+    {
+        HandleSelectionInput();
+    }
+    
+    private void HandleSelectionInput()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            MyUnitSelectionManager.Instance.StartSelection(Input.mousePosition);
+        }
+        else if (Input.GetMouseButton(0))
+        {
+            MyUnitSelectionManager.Instance.UpdateSelection(Input.mousePosition);
+        }
+        else if (Input.GetMouseButtonUp(0))
+        {
+            MyUnitSelectionManager.Instance.FinishSelection(Input.mousePosition);
+        }
+    }
+}
+```
+### **? 进阶用法**
+**自定义非Component类型的选择**
+```csharp
+public class UnitData
+{
+    public string Id { get; set; }
+    public GameObject GameObject { get; set; }
+    public Vector3 Position => GameObject.transform.position;
+}
+
+public class UnitDataSelectionManager : SelectionManager<UnitData>
+{
+    [SerializeField] private List<UnitData> _allUnitData;
+    
+    public override UnitData[] GetAllUnits()
+    {
+        return _allUnitData.ToArray();
+    }
+    
+    protected override void Awake()
+    {
+        base.Awake();
+        
+        // 自定义Transform获取逻辑
+        GetTransformFromUnit = (unitData) => unitData.GameObject.transform;
+        
+        // 自定义选中效果
+        OnSetUnitSelectedEffect += (unitData, selected) => 
+        {
+            unitData.GameObject.GetComponent<Outline>().enabled = selected;
+        };
+    }
+}
+```
+**使用选择事件**
+```csharp
+public class SelectionUI : MonoBehaviour
+{
+    [SerializeField] private Image selectionBox;
+    
+    private void Start()
+    {
+        var selectionManager = MyUnitSelectionManager.Instance;
+        
+        // 选择框显示
+        selectionManager.OnSelectionBoxDisplay += (rect) =>
+        {
+            selectionBox.rectTransform.anchoredPosition = rect.position;
+            selectionBox.rectTransform.sizeDelta = rect.size;
+            selectionBox.gameObject.SetActive(rect.size != Vector2.zero);
+        };
+        
+        // 单位选中
+        selectionManager.OnUnitSelected += (unit) =>
+        {
+            Debug.Log($"选中单位: {unit.name}");
+        };
+        
+        // 选择清空
+        selectionManager.OnSelectionCleared += () =>
+        {
+            Debug.Log("选择已清空");
+        };
+    }
+}
+```
+### **? API 参考**
+**核心方法**
+| 方法 | 描述 |
+|------|------|
+| SelectUnit(T unit) | 选中指定单位 |
+| AddToSelection(T unit) | 添加单位到当前选择 |
+| ClearSelection() | 清空所有选择 |
+| StartSelection(Vector2 startPos) | 开始框选 |
+| FinishSelection(Vector2 endPos) | 结束框选 |
+| SelectUnitsInArea(Vector2 start, Vector2 end) | 在区域内选择单位 |
+
+**重要属性**
+| 属性 | 描述 |
+|------|------|
+| SelectedUnits | 当前选中的单位列表 |
+| IsSelecting | 是否正在框选 |
+| GetTransformFromUnit | 自定义Transform获取委托 |
+
+**事件系统**
+| 事件 | 描述 |
+|------|------|
+| OnUnitSelected | 当单位被选中时触发 |
+| OnSelectionCleared | 当选择被清空时触发 |
+| OnSelectionBoxDisplay | 当需要显示选择框时触发 |
+| OnSetUnitSelectedEffect | 当需要设置单位选中效果时触发 |
+
+### **? 输入配置**
+框架不强制绑定特定输入方式，你可以自由集成：
+```csharp
+private void HandleSelectionInput()
+{
+    // 鼠标输入
+    if (Input.GetMouseButtonDown(0))
+    {
+        selectionManager.StartSelection(Input.mousePosition);
+    }
+    // 触摸输入
+    else if (Input.touchCount > 0)
+    {
+        var touch = Input.GetTouch(0);
+        if (touch.phase == TouchPhase.Began)
+        {
+            selectionManager.StartSelection(touch.position);
+        }
+    }
+}
+```
+### **? 自定义配置**
+**修改选择逻辑**
+```csharp
+public class CustomSelectionManager : SelectionManager<MyUnit>
+{
+    public override MyUnit[] GetAllUnits()
+    {
+        return FindObjectsOfType<MyUnit>().Where(unit => unit.IsSelectable).ToArray();
+    }
+    
+    public override void SelectUnitsInArea(Vector2 start, Vector2 end)
+    {
+        // 自定义选择逻辑
+        base.SelectUnitsInArea(start, end);
+        
+        // 额外处理
+        OnCustomSelectionComplete?.Invoke();
+    }
+}
+```
+### **? 故障排除**
+### 常见问题
+**Q：选择管理器实例为null**  
+**A：** 确保场景中存在继承自 `SelectionManager<T>` 的组件
+
+**Q：单位无法被选中**  
+**A：** 检查 `GetAllUnits()` 方法是否正确返回所有单位，以及 `GetUnitTransform()` 是否能正确获取Transform
+
+**Q：选中效果不显示**  
+**A：** 确认已正确订阅 `OnSetUnitSelectedEffect` 事件
