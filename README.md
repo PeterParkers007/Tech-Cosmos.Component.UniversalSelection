@@ -1,233 +1,1 @@
-# UniversalSelection - UnityÍ¨ÓÃÑ¡Ôñ¹ÜÀíÆ÷
-
-[![Unity Version](https://img.shields.io/badge/Unity-2022.3%2B-blue.svg)](https://unity3d.com)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-Ò»¸ö¸ß¶È½âñî¡¢ÀàĞÍ°²È«µÄUnityÑ¡Ôñ¹ÜÀí¿ò¼Ü£¬Ö§³Ö¿òÑ¡¡¢¶àÑ¡¡¢µş¼ÓÑ¡Ôñ£¬Ö»Ğè¼Ì³ĞÒ»¸öÀà¼´¿ÉÎªÈÎºÎÀàĞÍÌí¼ÓÍêÕûµÄÑ¡Ôñ¹¦ÄÜ¡£
-
-## **? ÌØĞÔ**
-- ? **Í¨ÓÃĞÔÇ¿**- Ö§³ÖÈÎºÎÀàĞÍµÄµ¥Î»Ñ¡Ôñ£¨GameObject¡¢Component¡¢×Ô¶¨ÒåÀàµÈ£©
-
-- ?? **¹¦ÄÜÍêÕû** - ¿òÑ¡¡¢¶àÑ¡¡¢µş¼ÓÑ¡Ôñ£¨Shift¼ü£©¡¢µ¥Ñ¡
-
-- ? **¸ß¶È½âñî** - Í¨¹ıÊÂ¼şºÍÎ¯ÍĞÊµÏÖÍêÈ«¿É¶¨ÖÆ
-
-- ? **¿ªÏä¼´ÓÃ** - Ö»ĞèÊµÏÖÒ»¸ö·½·¨¼´¿ÉÊ¹ÓÃ
-
-- ?? **ÀàĞÍ°²È«** - »ùÓÚ·ºĞÍÉè¼Æ£¬±àÒëÊ±ÀàĞÍ¼ì²é
-
-- ? **ÇáÁ¿¼¶**- ÎŞÒÀÀµ£¬´¿C#ÊµÏÖ
-
-
-## **? °²×°**
-**Ê¹ÓÃUnity Package Manager**
-1. ´ò¿ª Unity Package Manager
-
-2. µã»÷ "+" °´Å¥
-
-3. Ñ¡Ôñ "Add package from git URL"
-
-4. ÊäÈë£ºhttps://github.com/PeterParkers007/UniversalSelection.git
-
-»òÊÖ¶¯°²×°
-½«Õû¸ö UniversalSelection ÎÄ¼ş¼Ğ·ÅÈëÏîÄ¿µÄ Packages Ä¿Â¼ÖĞ¡£
-
-## ? ¿ìËÙ¿ªÊ¼
-### »ù´¡ÓÃ·¨
-1.´´½¨ÄãµÄµ¥Î»Àà:
-```csharp
-public class MyUnit : MonoBehaviour
-{
-    public string unitName;
-    
-    public void SetSelectedEffect(bool selected)
-    {
-        GetComponent<Renderer>().material.color = selected ? Color.red : Color.white;
-    }
-}
-```
-2.´´½¨Ñ¡Ôñ¹ÜÀíÆ÷:
-```csharp
-public class MyUnitSelectionManager : SelectionManager<MyUnit>
-{
-    public override MyUnit[] GetAllUnits()
-    {
-        return FindObjectsOfType<MyUnit>();
-    }
-    
-    protected override void Awake()
-    {
-        base.Awake();
-        OnSetUnitSelectedEffect += (unit, selected) => unit.SetSelectedEffect(selected);
-    }
-}
-```
-3.ÔÚ³¡¾°ÖĞÊ¹ÓÃ:
-```csharp
-public class GameController : MonoBehaviour
-{
-    private void Update()
-    {
-        HandleSelectionInput();
-    }
-    
-    private void HandleSelectionInput()
-    {
-        if (Input.GetMouseButtonDown(0))
-        {
-            MyUnitSelectionManager.Instance.StartSelection(Input.mousePosition);
-        }
-        else if (Input.GetMouseButton(0))
-        {
-            MyUnitSelectionManager.Instance.UpdateSelection(Input.mousePosition);
-        }
-        else if (Input.GetMouseButtonUp(0))
-        {
-            MyUnitSelectionManager.Instance.FinishSelection(Input.mousePosition);
-        }
-    }
-}
-```
-### **? ½ø½×ÓÃ·¨**
-**×Ô¶¨Òå·ÇComponentÀàĞÍµÄÑ¡Ôñ**
-```csharp
-public class UnitData
-{
-    public string Id { get; set; }
-    public GameObject GameObject { get; set; }
-    public Vector3 Position => GameObject.transform.position;
-}
-
-public class UnitDataSelectionManager : SelectionManager<UnitData>
-{
-    [SerializeField] private List<UnitData> _allUnitData;
-    
-    public override UnitData[] GetAllUnits()
-    {
-        return _allUnitData.ToArray();
-    }
-    
-    protected override void Awake()
-    {
-        base.Awake();
-        
-        // ×Ô¶¨ÒåTransform»ñÈ¡Âß¼­
-        GetTransformFromUnit = (unitData) => unitData.GameObject.transform;
-        
-        // ×Ô¶¨ÒåÑ¡ÖĞĞ§¹û
-        OnSetUnitSelectedEffect += (unitData, selected) => 
-        {
-            unitData.GameObject.GetComponent<Outline>().enabled = selected;
-        };
-    }
-}
-```
-**Ê¹ÓÃÑ¡ÔñÊÂ¼ş**
-```csharp
-public class SelectionUI : MonoBehaviour
-{
-    [SerializeField] private Image selectionBox;
-    
-    private void Start()
-    {
-        var selectionManager = MyUnitSelectionManager.Instance;
-        
-        // Ñ¡Ôñ¿òÏÔÊ¾
-        selectionManager.OnSelectionBoxDisplay += (rect) =>
-        {
-            selectionBox.rectTransform.anchoredPosition = rect.position;
-            selectionBox.rectTransform.sizeDelta = rect.size;
-            selectionBox.gameObject.SetActive(rect.size != Vector2.zero);
-        };
-        
-        // µ¥Î»Ñ¡ÖĞ
-        selectionManager.OnUnitSelected += (unit) =>
-        {
-            Debug.Log($"Ñ¡ÖĞµ¥Î»: {unit.name}");
-        };
-        
-        // Ñ¡ÔñÇå¿Õ
-        selectionManager.OnSelectionCleared += () =>
-        {
-            Debug.Log("Ñ¡ÔñÒÑÇå¿Õ");
-        };
-    }
-}
-```
-### **? API ²Î¿¼**
-**ºËĞÄ·½·¨**
-| ·½·¨ | ÃèÊö |
-|------|------|
-| SelectUnit(T unit) | Ñ¡ÖĞÖ¸¶¨µ¥Î» |
-| AddToSelection(T unit) | Ìí¼Óµ¥Î»µ½µ±Ç°Ñ¡Ôñ |
-| ClearSelection() | Çå¿ÕËùÓĞÑ¡Ôñ |
-| StartSelection(Vector2 startPos) | ¿ªÊ¼¿òÑ¡ |
-| FinishSelection(Vector2 endPos) | ½áÊø¿òÑ¡ |
-| SelectUnitsInArea(Vector2 start, Vector2 end) | ÔÚÇøÓòÄÚÑ¡Ôñµ¥Î» |
-
-**ÖØÒªÊôĞÔ**
-| ÊôĞÔ | ÃèÊö |
-|------|------|
-| SelectedUnits | µ±Ç°Ñ¡ÖĞµÄµ¥Î»ÁĞ±í |
-| IsSelecting | ÊÇ·ñÕıÔÚ¿òÑ¡ |
-| GetTransformFromUnit | ×Ô¶¨ÒåTransform»ñÈ¡Î¯ÍĞ |
-
-**ÊÂ¼şÏµÍ³**
-| ÊÂ¼ş | ÃèÊö |
-|------|------|
-| OnUnitSelected | µ±µ¥Î»±»Ñ¡ÖĞÊ±´¥·¢ |
-| OnSelectionCleared | µ±Ñ¡Ôñ±»Çå¿ÕÊ±´¥·¢ |
-| OnSelectionBoxDisplay | µ±ĞèÒªÏÔÊ¾Ñ¡Ôñ¿òÊ±´¥·¢ |
-| OnSetUnitSelectedEffect | µ±ĞèÒªÉèÖÃµ¥Î»Ñ¡ÖĞĞ§¹ûÊ±´¥·¢ |
-
-### **? ÊäÈëÅäÖÃ**
-¿ò¼Ü²»Ç¿ÖÆ°ó¶¨ÌØ¶¨ÊäÈë·½Ê½£¬Äã¿ÉÒÔ×ÔÓÉ¼¯³É£º
-```csharp
-private void HandleSelectionInput()
-{
-    // Êó±êÊäÈë
-    if (Input.GetMouseButtonDown(0))
-    {
-        selectionManager.StartSelection(Input.mousePosition);
-    }
-    // ´¥ÃşÊäÈë
-    else if (Input.touchCount > 0)
-    {
-        var touch = Input.GetTouch(0);
-        if (touch.phase == TouchPhase.Began)
-        {
-            selectionManager.StartSelection(touch.position);
-        }
-    }
-}
-```
-### **? ×Ô¶¨ÒåÅäÖÃ**
-**ĞŞ¸ÄÑ¡ÔñÂß¼­**
-```csharp
-public class CustomSelectionManager : SelectionManager<MyUnit>
-{
-    public override MyUnit[] GetAllUnits()
-    {
-        return FindObjectsOfType<MyUnit>().Where(unit => unit.IsSelectable).ToArray();
-    }
-    
-    public override void SelectUnitsInArea(Vector2 start, Vector2 end)
-    {
-        // ×Ô¶¨ÒåÑ¡ÔñÂß¼­
-        base.SelectUnitsInArea(start, end);
-        
-        // ¶îÍâ´¦Àí
-        OnCustomSelectionComplete?.Invoke();
-    }
-}
-```
-### **? ¹ÊÕÏÅÅ³ı**
-### ³£¼ûÎÊÌâ
-**Q£ºÑ¡Ôñ¹ÜÀíÆ÷ÊµÀıÎªnull**  
-**A£º** È·±£³¡¾°ÖĞ´æÔÚ¼Ì³Ğ×Ô `SelectionManager<T>` µÄ×é¼ş
-
-**Q£ºµ¥Î»ÎŞ·¨±»Ñ¡ÖĞ**  
-**A£º** ¼ì²é `GetAllUnits()` ·½·¨ÊÇ·ñÕıÈ··µ»ØËùÓĞµ¥Î»£¬ÒÔ¼° `GetUnitTransform()` ÊÇ·ñÄÜÕıÈ·»ñÈ¡Transform
-
-**Q£ºÑ¡ÖĞĞ§¹û²»ÏÔÊ¾**  
-**A£º** È·ÈÏÒÑÕıÈ·¶©ÔÄ `OnSetUnitSelectedEffect` ÊÂ¼ş
+ï»¿# UniversalSelection - Unityé€šç”¨é€‰æ‹©ç®¡ç†å™¨[![Unity Version](https://img.shields.io/badge/Unity-2022.3%2B-blue.svg)](https://unity3d.com)[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)ä¸€ä¸ªé«˜åº¦è§£è€¦ã€ç±»å‹å®‰å…¨çš„Unityé€‰æ‹©ç®¡ç†æ¡†æ¶ï¼Œæ”¯æŒæ¡†é€‰ã€å¤šé€‰ã€å åŠ é€‰æ‹©ï¼Œåªéœ€ç»§æ‰¿ä¸€ä¸ªç±»å³å¯ä¸ºä»»ä½•ç±»å‹æ·»åŠ å®Œæ•´çš„é€‰æ‹©åŠŸèƒ½ã€‚## **âœ¨ ç‰¹æ€§**- ğŸ¯ **é€šç”¨æ€§å¼º**- æ”¯æŒä»»ä½•ç±»å‹çš„å•ä½é€‰æ‹©ï¼ˆGameObjectã€Componentã€è‡ªå®šä¹‰ç±»ç­‰ï¼‰- ğŸ–±ï¸ **åŠŸèƒ½å®Œæ•´** - æ¡†é€‰ã€å¤šé€‰ã€å åŠ é€‰æ‹©ï¼ˆShifté”®ï¼‰ã€å•é€‰- ğŸ”§ **é«˜åº¦è§£è€¦** - é€šè¿‡äº‹ä»¶å’Œå§”æ‰˜å®ç°å®Œå…¨å¯å®šåˆ¶- ğŸš€ **å¼€ç®±å³ç”¨** - åªéœ€å®ç°ä¸€ä¸ªæ–¹æ³•å³å¯ä½¿ç”¨- ğŸ—ï¸ **ç±»å‹å®‰å…¨** - åŸºäºæ³›å‹è®¾è®¡ï¼Œç¼–è¯‘æ—¶ç±»å‹æ£€æŸ¥- ğŸ“¦ **è½»é‡çº§**- æ— ä¾èµ–ï¼Œçº¯C#å®ç°## **ğŸ“¥ å®‰è£…****ä½¿ç”¨Unity Package Manager**1. æ‰“å¼€ Unity Package Manager2. ç‚¹å‡» "+" æŒ‰é’®3. é€‰æ‹© "Add package from git URL"4. è¾“å…¥ï¼šhttps://github.com/PeterParkers007/UniversalSelection.gitæˆ–æ‰‹åŠ¨å®‰è£…å°†æ•´ä¸ª UniversalSelection æ–‡ä»¶å¤¹æ”¾å…¥é¡¹ç›®çš„ Packages ç›®å½•ä¸­ã€‚## ğŸš€ å¿«é€Ÿå¼€å§‹### åŸºç¡€ç”¨æ³•1.åˆ›å»ºä½ çš„å•ä½ç±»:```csharppublic class MyUnit : MonoBehaviour{    public string unitName;        public void SetSelectedEffect(bool selected)    {        GetComponent<Renderer>().material.color = selected ? Color.red : Color.white;    }}```2.åˆ›å»ºé€‰æ‹©ç®¡ç†å™¨:```csharppublic class MyUnitSelectionManager : SelectionManager<MyUnit>{    public override MyUnit[] GetAllUnits()    {        return FindObjectsOfType<MyUnit>();    }        protected override void Awake()    {        base.Awake();        OnSetUnitSelectedEffect += (unit, selected) => unit.SetSelectedEffect(selected);    }}```3.åœ¨åœºæ™¯ä¸­ä½¿ç”¨:```csharppublic class GameController : MonoBehaviour{    private void Update()    {        HandleSelectionInput();    }        private void HandleSelectionInput()    {        if (Input.GetMouseButtonDown(0))        {            MyUnitSelectionManager.Instance.StartSelection(Input.mousePosition);        }        else if (Input.GetMouseButton(0))        {            MyUnitSelectionManager.Instance.UpdateSelection(Input.mousePosition);        }        else if (Input.GetMouseButtonUp(0))        {            MyUnitSelectionManager.Instance.FinishSelection(Input.mousePosition);        }    }}```### **ğŸ“š è¿›é˜¶ç”¨æ³•****è‡ªå®šä¹‰éComponentç±»å‹çš„é€‰æ‹©**```csharppublic class UnitData{    public string Id { get; set; }    public GameObject GameObject { get; set; }    public Vector3 Position => GameObject.transform.position;}public class UnitDataSelectionManager : SelectionManager<UnitData>{    [SerializeField] private List<UnitData> _allUnitData;        public override UnitData[] GetAllUnits()    {        return _allUnitData.ToArray();    }        protected override void Awake()    {        base.Awake();                // è‡ªå®šä¹‰Transformè·å–é€»è¾‘        GetTransformFromUnit = (unitData) => unitData.GameObject.transform;                // è‡ªå®šä¹‰é€‰ä¸­æ•ˆæœ        OnSetUnitSelectedEffect += (unitData, selected) =>         {            unitData.GameObject.GetComponent<Outline>().enabled = selected;        };    }}```**ä½¿ç”¨é€‰æ‹©äº‹ä»¶**```csharppublic class SelectionUI : MonoBehaviour{    [SerializeField] private Image selectionBox;        private void Start()    {        var selectionManager = MyUnitSelectionManager.Instance;                // é€‰æ‹©æ¡†æ˜¾ç¤º        selectionManager.OnSelectionBoxDisplay += (rect) =>        {            selectionBox.rectTransform.anchoredPosition = rect.position;            selectionBox.rectTransform.sizeDelta = rect.size;            selectionBox.gameObject.SetActive(rect.size != Vector2.zero);        };                // å•ä½é€‰ä¸­        selectionManager.OnUnitSelected += (unit) =>        {            Debug.Log($"é€‰ä¸­å•ä½: {unit.name}");        };                // é€‰æ‹©æ¸…ç©º        selectionManager.OnSelectionCleared += () =>        {            Debug.Log("é€‰æ‹©å·²æ¸…ç©º");        };    }}```### **ğŸ¯ API å‚è€ƒ****æ ¸å¿ƒæ–¹æ³•**| æ–¹æ³• | æè¿° ||------|------|| SelectUnit(T unit) | é€‰ä¸­æŒ‡å®šå•ä½ || AddToSelection(T unit) | æ·»åŠ å•ä½åˆ°å½“å‰é€‰æ‹© || ClearSelection() | æ¸…ç©ºæ‰€æœ‰é€‰æ‹© || StartSelection(Vector2 startPos) | å¼€å§‹æ¡†é€‰ || FinishSelection(Vector2 endPos) | ç»“æŸæ¡†é€‰ || SelectUnitsInArea(Vector2 start, Vector2 end) | åœ¨åŒºåŸŸå†…é€‰æ‹©å•ä½ |**é‡è¦å±æ€§**| å±æ€§ | æè¿° ||------|------|| SelectedUnits | å½“å‰é€‰ä¸­çš„å•ä½åˆ—è¡¨ || IsSelecting | æ˜¯å¦æ­£åœ¨æ¡†é€‰ || GetTransformFromUnit | è‡ªå®šä¹‰Transformè·å–å§”æ‰˜ |**äº‹ä»¶ç³»ç»Ÿ**| äº‹ä»¶ | æè¿° ||------|------|| OnUnitSelected | å½“å•ä½è¢«é€‰ä¸­æ—¶è§¦å‘ || OnSelectionCleared | å½“é€‰æ‹©è¢«æ¸…ç©ºæ—¶è§¦å‘ || OnSelectionBoxDisplay | å½“éœ€è¦æ˜¾ç¤ºé€‰æ‹©æ¡†æ—¶è§¦å‘ || OnSetUnitSelectedEffect | å½“éœ€è¦è®¾ç½®å•ä½é€‰ä¸­æ•ˆæœæ—¶è§¦å‘ |### **ğŸ® è¾“å…¥é…ç½®**æ¡†æ¶ä¸å¼ºåˆ¶ç»‘å®šç‰¹å®šè¾“å…¥æ–¹å¼ï¼Œä½ å¯ä»¥è‡ªç”±é›†æˆï¼š```csharpprivate void HandleSelectionInput(){    // é¼ æ ‡è¾“å…¥    if (Input.GetMouseButtonDown(0))    {        selectionManager.StartSelection(Input.mousePosition);    }    // è§¦æ‘¸è¾“å…¥    else if (Input.touchCount > 0)    {        var touch = Input.GetTouch(0);        if (touch.phase == TouchPhase.Began)        {            selectionManager.StartSelection(touch.position);        }    }}```### **ğŸ”§ è‡ªå®šä¹‰é…ç½®****ä¿®æ”¹é€‰æ‹©é€»è¾‘**```csharppublic class CustomSelectionManager : SelectionManager<MyUnit>{    public override MyUnit[] GetAllUnits()    {        return FindObjectsOfType<MyUnit>().Where(unit => unit.IsSelectable).ToArray();    }        public override void SelectUnitsInArea(Vector2 start, Vector2 end)    {        // è‡ªå®šä¹‰é€‰æ‹©é€»è¾‘        base.SelectUnitsInArea(start, end);                // é¢å¤–å¤„ç†        OnCustomSelectionComplete?.Invoke();    }}```### **ğŸ› æ•…éšœæ’é™¤**### å¸¸è§é—®é¢˜**Qï¼šé€‰æ‹©ç®¡ç†å™¨å®ä¾‹ä¸ºnull**  **Aï¼š** ç¡®ä¿åœºæ™¯ä¸­å­˜åœ¨ç»§æ‰¿è‡ª `SelectionManager<T>` çš„ç»„ä»¶**Qï¼šå•ä½æ— æ³•è¢«é€‰ä¸­**  **Aï¼š** æ£€æŸ¥ `GetAllUnits()` æ–¹æ³•æ˜¯å¦æ­£ç¡®è¿”å›æ‰€æœ‰å•ä½ï¼Œä»¥åŠ `GetUnitTransform()` æ˜¯å¦èƒ½æ­£ç¡®è·å–Transform**Qï¼šé€‰ä¸­æ•ˆæœä¸æ˜¾ç¤º**  **Aï¼š** ç¡®è®¤å·²æ­£ç¡®è®¢é˜… `OnSetUnitSelectedEffect` äº‹ä»¶
